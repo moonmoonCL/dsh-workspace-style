@@ -86,6 +86,24 @@ Where users actually find DSH plugins, in order of reach (verified 2026-11):
 
 `category: ui` is the right bucket (UI enhancement, not an app theme/skin).
 
+### Publishing to npm
+
+The local `npm config get registry` points at a mirror, so publishing needs the official registry spelled out (a mirror silently rejects the publish) and an interactive login:
+
+```sh
+npm login --registry=https://registry.npmjs.org/        # once per machine
+npm publish --registry=https://registry.npmjs.org/ \
+  --access public --otp=<code-if-2fa>
+```
+
+Check the tarball before publishing — `screenshots.json` and the screenshot must be in it, or the marketplace detail page comes up empty:
+
+```sh
+npm pack --dry-run --registry=https://registry.npmjs.org/
+```
+
+If `npm` fails with `EPERM` on `~/.npm/_cacache`, that cache is root-owned from an older npm; either fix it once (`sudo chown -R "$(id -u):$(id -g)" ~/.npm`) or point `--cache` at a temp directory. Do not add a build step for any of this.
+
 **`screenshots.json`** at repo root is how marketplace detail pages get their screenshots (1–8 paths, relative to that file, GitHub-hosted only). Keep the image in `docs/assets/` and list it there — never an absolute URL, which rots silently. Update it whenever the dialog changes; a stale screenshot is worse than none.
 
 **A merged registry entry is a snapshot, not a subscription.** Any capability change needs a fresh PR to that entry, and reviewers check every claim in the description against the code — no superlatives, and no number you have not counted.
