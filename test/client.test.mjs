@@ -144,7 +144,7 @@ const storage = new Map([
     JSON.stringify({
       v: 1,
       styles: {
-        'ws-styled': { icon: 'ghost', color: 'coral' },
+        'ws-styled': { icon: 'book', color: 'coral' },
         'ws-tint': { icon: null, color: 'coral' },
         'ws-icon': { icon: 'folder', color: null },
         'ws-empty': { icon: null, color: null },
@@ -218,6 +218,27 @@ assert.deepEqual(Array.from(exports.inject), [
   'slots',
   'workspaces',
 ]);
+
+// --- dialog tile alignment ------------------------------------------------
+//
+// The dialog renders: icon tiles = 1 default + (ICONS.length - 1, folder
+// hidden behind the default tile) = ICONS.length; color tiles = 1
+// follow-system + COLORS.length. The two grids sit in one max-content modal,
+// so equal counts keep the rows the same width. Lock the invariant by
+// counting the literal entries in the source.
+{
+  const iconBlock = source.slice(
+    source.indexOf('const ICONS = ['),
+    source.indexOf('const ICON_IDS ='),
+  );
+  const colorBlock = source.slice(
+    source.indexOf('const COLORS = ['),
+    source.indexOf('const COLOR_IDS ='),
+  );
+  const iconEntries = (iconBlock.match(/\{\s*id:/g) ?? []).length;
+  const colorEntries = (colorBlock.match(/\{\s*id:/g) ?? []).length;
+  assert.equal(iconEntries, colorEntries + 1, 'dialog icon/color tile counts must match');
+}
 
 // --- fake services --------------------------------------------------------
 
@@ -305,11 +326,12 @@ assert.ok(pluginDictionaries.zh['color.followSystem']);
 assert.ok(pluginDictionaries.en['color.followSystem']);
 
 // A stylesheet was injected and carries the word-flag decoration rules,
-// including the expanded-state mask swap.
+// the expanded-state and active-filled mask swaps.
 const injectedStyle = head.children.find((child) => child.tagName === 'STYLE');
 assert.ok(injectedStyle);
 assert.ok(injectedStyle.textContent.includes('[data-dsh-workspace-style~="icon"]'));
 assert.ok(injectedStyle.textContent.includes('[aria-expanded="true"]'));
+assert.ok(injectedStyle.textContent.includes('[class*="folderActive"]'));
 assert.ok(injectedStyle.textContent.includes('[data-dsh-workspace-style~="color"]'));
 assert.ok(injectedStyle.textContent.includes('dsws-modal'));
 
@@ -326,30 +348,37 @@ assert.equal(actions[0].label, '编辑');
 assert.doesNotThrow(() => actions[0].run());
 
 // Each saved shape decorates its row with independent icon/color flags.
-// icon+color: masked glyph, tinted.
+// icon+color: masked glyph, tinted. The Phosphor `book` carries both an
+// open variant and a filled active variant, all three masks distinct.
 assert.equal(styledRow.getAttribute('data-dsh-workspace-style'), 'icon color');
 assert.equal(styledRow.style.getPropertyValue('--dsh-ws-color'), '#E85C4A');
 assert.match(styledRow.style.getPropertyValue('--dsh-ws-icon'), /^url\("data:image\/svg\+xml,/);
-// ghost has no open variant, so the expanded mask stays unset.
-assert.equal(styledRow.style.getPropertyValue('--dsh-ws-icon-open'), '');
+assert.match(styledRow.style.getPropertyValue('--dsh-ws-icon-open'), /^url\("data:image\/svg\+xml,/);
+assert.match(styledRow.style.getPropertyValue('--dsh-ws-icon-fill'), /^url\("data:image\/svg\+xml,/);
+assert.notEqual(
+  styledRow.style.getPropertyValue('--dsh-ws-icon-open'),
+  styledRow.style.getPropertyValue('--dsh-ws-icon'),
+);
+assert.notEqual(
+  styledRow.style.getPropertyValue('--dsh-ws-icon-fill'),
+  styledRow.style.getPropertyValue('--dsh-ws-icon'),
+);
 
 // default icon + custom color: the native folder glyph is kept, only tinted.
 assert.equal(tintRow.getAttribute('data-dsh-workspace-style'), 'color');
 assert.equal(tintRow.style.getPropertyValue('--dsh-ws-color'), '#E85C4A');
 assert.equal(tintRow.style.getPropertyValue('--dsh-ws-icon'), '');
 
-// custom icon + follow-system color: masked glyph without a tint; folder
-// carries a second, distinct expanded-state mask.
+// custom icon + follow-system color: mask without a tint; the folder mirror
+// has an open variant but no filled one (it keeps the native blue-active
+// look instead), so the fill mask stays unset.
 assert.equal(iconOnlyRow.getAttribute('data-dsh-workspace-style'), 'icon');
 assert.match(iconOnlyRow.style.getPropertyValue('--dsh-ws-icon'), /^url\("data:image\/svg\+xml,/);
 assert.match(
   iconOnlyRow.style.getPropertyValue('--dsh-ws-icon-open'),
   /^url\("data:image\/svg\+xml,/,
 );
-assert.notEqual(
-  iconOnlyRow.style.getPropertyValue('--dsh-ws-icon-open'),
-  iconOnlyRow.style.getPropertyValue('--dsh-ws-icon'),
-);
+assert.equal(iconOnlyRow.style.getPropertyValue('--dsh-ws-icon-fill'), '');
 assert.equal(iconOnlyRow.style.getPropertyValue('--dsh-ws-color'), '');
 
 // Both-default entries and unknown ids are not styles at all.
