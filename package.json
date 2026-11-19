@@ -1,0 +1,62 @@
+{
+  "name": "dsh-workspace-style",
+  "version": "0.1.0",
+  "description": "Custom workspace icons and colors for DSH, with a unified Edit dialog and sidebar rendering.",
+  "type": "module",
+  "license": "MIT",
+  "author": "moonmoonCL",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "dsh": ">=0.2.0-rc.2"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "workspace",
+    "icon",
+    "color"
+  ],
+  "icon": "./icon.svg",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moonmoonCL/dsh-workspace-style.git"
+  },
+  "homepage": "https://github.com/moonmoonCL/dsh-workspace-style#readme",
+  "bugs": "https://github.com/moonmoonCL/dsh-workspace-style/issues",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-api-remote-access",
+        "@deepseek-ai/dsh-api-workspace-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-context-menu",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
+    }
+  }
+}
