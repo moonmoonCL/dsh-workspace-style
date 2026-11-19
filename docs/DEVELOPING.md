@@ -79,9 +79,9 @@ Where users actually find DSH plugins, in order of reach (verified 2026-11):
 
 | Channel | Requirement | State |
 |---------|-------------|-------|
-| npm | `npm publish` from the **official** registry — a mirror registry in `npm config get registry` breaks publishing | pending: needs an authenticated `npm login` |
-| [dsh-plugin.org](https://dsh-plugin.org/zh/submit) (DSH Plugin Hub, 20k+ indexed) | public repo, topic `dsh-plugin`, README install command, root `package.json`, `apply(ctx)`; **listable in the in-app 插件中心 only with an npm package**; then open the prefilled Issue | — |
-| [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) registry (feeds most storefronts) | one file `data/plugins/<owner>__<repo>.yml` (`url`/`name`/`category`/`description.en` ending in a period; quote descriptions containing `: `), topic `dsh-plugin`, repo ≥ 1 day old, `dsh.bundle` declared (not just `dsh.client`), ≤ 3 entries per PR | — |
+| npm | `npm publish` from the **official** registry — a mirror registry in `npm config get registry` breaks publishing | **published**: `dsh-workspace-style@0.1.0`. npm stages a `0.0.0-stage` placeholder first, then promotes the real version; poll `registry.npmjs.org/dsh-workspace-style` rather than trusting the "may take a few minutes" notice |
+| [dsh-plugin.org](https://dsh-plugin.org/zh/submit) (DSH Plugin Hub, 20k+ indexed) | public repo, topic `dsh-plugin`, README install command, root `package.json`, `apply(ctx)`; **listable in the in-app 插件中心 only with an npm package**; then open the prefilled Issue | **submitted**: [issue #847](https://github.com/dshplugin/dsh-plugin-hub/issues/847) |
+| [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) registry (feeds most storefronts) | one file `data/plugins/<owner>__<repo>.yml` (`url`/`name`/`category`/`description.en` ending in a period; quote descriptions containing `: `), topic `dsh-plugin`, repo ≥ 1 day old, `dsh.bundle` declared (not just `dsh.client`), ≤ 3 entries per PR | **PR open**: [#16936](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16936) — the repo-age gate (created 2026-11-19T07:03Z) fails at first and re-runs itself; do not push an empty commit |
 | dsh-market Themes tab | `category: theme` in that registry — **not** ours; this plugin is `ui` | n/a |
 
 `category: ui` is the right bucket (UI enhancement, not an app theme/skin).
