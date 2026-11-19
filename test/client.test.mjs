@@ -86,12 +86,18 @@ class FakeElement {
 const head = new FakeElement('head');
 const body = new FakeElement('body');
 
-// One decorated Workspace row and one row whose saved style is invalid.
+// Decorated Workspace rows covering every style shape, plus an unreadable one.
 const styledRow = new FakeElement('div');
 styledRow.setAttribute('data-row-key', 'workspace:ws-styled');
+const tintRow = new FakeElement('div');
+tintRow.setAttribute('data-row-key', 'workspace:ws-tint');
+const iconOnlyRow = new FakeElement('div');
+iconOnlyRow.setAttribute('data-row-key', 'workspace:ws-icon');
+const emptyRow = new FakeElement('div');
+emptyRow.setAttribute('data-row-key', 'workspace:ws-empty');
 const brokenRow = new FakeElement('div');
 brokenRow.setAttribute('data-row-key', 'workspace:ws-broken');
-const rows = [styledRow, brokenRow];
+const rows = [styledRow, tintRow, iconOnlyRow, emptyRow, brokenRow];
 
 // A workspace menu carrying our Edit entry plus the built-in Rename entry,
 // and an unrelated menu that also says Rename.
@@ -139,6 +145,9 @@ const storage = new Map([
       v: 1,
       styles: {
         'ws-styled': { icon: 'ghost', color: 'coral' },
+        'ws-tint': { icon: null, color: 'coral' },
+        'ws-icon': { icon: 'folder', color: null },
+        'ws-empty': { icon: null, color: null },
         'ws-broken': { icon: 'not-an-icon', color: 'coral' },
       },
     }),
@@ -281,14 +290,27 @@ const ctx = {
 
 exports.apply(ctx);
 
-// Locale dictionaries exist and are complete enough for the rendered labels.
-assert.equal(dictionaries.get('dsh-workspace-style').zh['menu.edit'], '编辑');
-assert.equal(dictionaries.get('dsh-workspace-style').en['menu.edit'], 'Edit');
+// Locale dictionaries exist, stay key-identical across locales, and carry
+// the default-option labels.
+const pluginDictionaries = dictionaries.get('dsh-workspace-style');
+assert.equal(pluginDictionaries.zh['menu.edit'], '编辑');
+assert.equal(pluginDictionaries.en['menu.edit'], 'Edit');
+assert.deepEqual(
+  Object.keys(pluginDictionaries.zh).sort(),
+  Object.keys(pluginDictionaries.en).sort(),
+);
+assert.ok(pluginDictionaries.zh['icon.default']);
+assert.ok(pluginDictionaries.en['icon.default']);
+assert.ok(pluginDictionaries.zh['color.followSystem']);
+assert.ok(pluginDictionaries.en['color.followSystem']);
 
-// A stylesheet was injected and carries the row decoration rule.
+// A stylesheet was injected and carries the word-flag decoration rules,
+// including the expanded-state mask swap.
 const injectedStyle = head.children.find((child) => child.tagName === 'STYLE');
 assert.ok(injectedStyle);
-assert.ok(injectedStyle.textContent.includes('[data-dsh-workspace-style]'));
+assert.ok(injectedStyle.textContent.includes('[data-dsh-workspace-style~="icon"]'));
+assert.ok(injectedStyle.textContent.includes('[aria-expanded="true"]'));
+assert.ok(injectedStyle.textContent.includes('[data-dsh-workspace-style~="color"]'));
 assert.ok(injectedStyle.textContent.includes('dsws-modal'));
 
 // The Workspace menu contribution resolves to one Edit action.
@@ -303,10 +325,35 @@ assert.equal(actions.length, 1);
 assert.equal(actions[0].label, '编辑');
 assert.doesNotThrow(() => actions[0].run());
 
-// The valid saved style decorates its row; the invalid one is ignored.
-assert.equal(styledRow.getAttribute('data-dsh-workspace-style'), '');
+// Each saved shape decorates its row with independent icon/color flags.
+// icon+color: masked glyph, tinted.
+assert.equal(styledRow.getAttribute('data-dsh-workspace-style'), 'icon color');
 assert.equal(styledRow.style.getPropertyValue('--dsh-ws-color'), '#E85C4A');
 assert.match(styledRow.style.getPropertyValue('--dsh-ws-icon'), /^url\("data:image\/svg\+xml,/);
+// ghost has no open variant, so the expanded mask stays unset.
+assert.equal(styledRow.style.getPropertyValue('--dsh-ws-icon-open'), '');
+
+// default icon + custom color: the native folder glyph is kept, only tinted.
+assert.equal(tintRow.getAttribute('data-dsh-workspace-style'), 'color');
+assert.equal(tintRow.style.getPropertyValue('--dsh-ws-color'), '#E85C4A');
+assert.equal(tintRow.style.getPropertyValue('--dsh-ws-icon'), '');
+
+// custom icon + follow-system color: masked glyph without a tint; folder
+// carries a second, distinct expanded-state mask.
+assert.equal(iconOnlyRow.getAttribute('data-dsh-workspace-style'), 'icon');
+assert.match(iconOnlyRow.style.getPropertyValue('--dsh-ws-icon'), /^url\("data:image\/svg\+xml,/);
+assert.match(
+  iconOnlyRow.style.getPropertyValue('--dsh-ws-icon-open'),
+  /^url\("data:image\/svg\+xml,/,
+);
+assert.notEqual(
+  iconOnlyRow.style.getPropertyValue('--dsh-ws-icon-open'),
+  iconOnlyRow.style.getPropertyValue('--dsh-ws-icon'),
+);
+assert.equal(iconOnlyRow.style.getPropertyValue('--dsh-ws-color'), '');
+
+// Both-default entries and unknown ids are not styles at all.
+assert.equal(emptyRow.hasAttribute('data-dsh-workspace-style'), false);
 assert.equal(brokenRow.hasAttribute('data-dsh-workspace-style'), false);
 assert.equal(brokenRow.style.getPropertyValue('--dsh-ws-color'), '');
 

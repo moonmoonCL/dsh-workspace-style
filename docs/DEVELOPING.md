@@ -29,14 +29,17 @@ UI primitives come from `require('@deepseek-ai/dsh-client-ui-primitives')` (`Mod
 
 The Host has no icon/color fields on a Workspace record and ui-workspace exposes **no decoration slot** for workspace rows, so styling is DOM-anchored:
 
-- Sidebar workspace rows carry a stable `data-row-key="workspace:<id>"`. `decorateRow` matches that prefix, sets `data-dsh-workspace-style`, and writes `--dsh-ws-color` / `--dsh-ws-icon` (a data-URI CSS mask) onto the row.
-- Icons render via CSS `mask-image` (stroke `black` → opaque under mask) so they follow the palette color in both themes; the built-in folder `<svg>` is `display:none` under the attribute.
-- A `MutationObserver` on `document.body` (attributeFilter `data-row-key`) re-decorates; React re-renders preserve unknown attributes/inline styles (verified live).
+- Sidebar workspace rows carry a stable `data-row-key="workspace:<id>"`. `decorateRow` matches that prefix and writes `data-dsh-workspace-style` **with word flags** — `icon` and/or `color` — plus the matching custom properties:
+  - `icon` hides the built-in folder `<svg>` (via the stylesheet's `~="icon"` selectors) and paints a data-URI CSS mask from `--dsh-ws-icon` (and `--dsh-ws-icon-open` when the icon has an open variant). The mask's `background-color` falls back to `currentColor`, so a follow-system color inherits the built-in rest-gray / active-blue logic.
+  - `color` alone keeps the native folder `<svg>` and its two states untouched, only tinting the slot via `color: var(--dsh-ws-color) !important` (beats the built-in `.folderActive` blue by intent: a chosen color wins).
+  - A fully-default selection (both axes `null`) is not a style: the attribute, the properties, and the storage entry all disappear.
+- Expanded/collapsed states: rows carry `aria-expanded`, so the stylesheet swaps the mask to `--dsh-ws-icon-open` purely in CSS — no observer needed. The `folder` icon copies the host's own 16x16 geometry (regular weight, extracted from the `dsh-client-ui-primitives` sprite data in `dsh-web-frontend`), closed and open, so the plugin folder and the built-in one are the same drawing. Pictorial icons deliberately have no fake open state (no rotation/opacity tricks): hover chevrons and visible child rows carry the expansion cue, the same convention icon themes use for non-container glyphs.
+- React re-renders preserve unknown attributes/inline styles (verified live). A `MutationObserver` on `document.body` (attributeFilter `data-row-key`) re-decorates.
 - If DSH renames or drops `data-row-key`, decoration silently stops working — acceptable failure mode, never throws.
 
 ### Persistence
 
-`localStorage` key `dsh-workspace-style:styles:v1` → `{"v":1,"styles":{<workspaceId>:{icon,color}}}`. Styles are **browser-local** (per-origin), keyed by stable Workspace id (Host never reuses ids). Cross-tab via `storage` event. `readStyles` drops unknown icon/color ids, so catalog changes degrade gracefully. Bump the key (`:v2`) on breaking schema changes — old data is then ignored, not migrated.
+`localStorage` key `dsh-workspace-style:styles:v1` → `{"v":1,"styles":{<workspaceId>:{icon,color}}}` where **`null` on an axis means "system default" for it** and a both-null entry is never stored (saving it resets the row and deletes the entry). Styles are **browser-local** (per-origin), keyed by stable Workspace id (Host never reuses ids). Cross-tab via `storage` event. `readStyles` drops unknown icon/color ids and both-null entries, so catalog changes degrade gracefully. The v1 shape is forward-compatible with the pre-null schema (old entries have two non-null strings). Bump the key (`:v2`) on breaking schema changes — old data is then ignored, not migrated.
 
 ## HMR and reload rules
 
@@ -56,7 +59,7 @@ When editing this function, re-verify the Session menu case (its Rename must sta
 
 ## Adding an icon or color
 
-Icons: add `{ id, svg }` to `ICONS` in client.js — 24×24 line art, `fill="none" stroke="black" stroke-width="1.5"`, explicit `fill="black"` on dots that must stay opaque. Test renders: dialog tile + sidebar mask (data-URI round-trip through `maskUrl`). Colors: append to `COLORS` (`{id, hex}`); storage stores ids, never hex, so retuning the palette doesn't rewrite saved data.
+Icons: add `{ id, svg }` to `ICONS` in client.js — 24×24 line art, `fill="none" stroke="black" stroke-width="1.5"`, explicit `fill="black"` on dots that must stay opaque. Optional fields: `viewBox`/`strokeWidth` reuse geometry drawn at another scale (the `folder` entry keeps the host's native 16×16/1 geometry), and `svgOpen` is the expanded-state glyph shown while the row carries `aria-expanded="true"` — add it only when the icon has a natural open form, never a rotation/opacity stand-in. Test renders: dialog tile + sidebar mask (data-URI round-trip through `iconMaskUrl`, both states when `svgOpen` is present). Colors: append to `COLORS` (`{id, hex}`); storage stores ids, never hex, so retuning the palette doesn't rewrite saved data. The first dialog tile on each axis is fixed ("system default" icon / "follow system" color); the catalog `folder` is hidden behind the default tile because it renders identically — keep the id valid for legacy saved data and revisit the alias in the menu `run` if the host ever changes its folder art.
 
 ## Live verification
 
@@ -64,13 +67,15 @@ Unit tests cover wiring only (fake DOM, fake cordis ctx). Real checks need a run
 
 1. Get the authed URL from the `dsh web:` line of the host output (or `tmux capture-pane`), e.g. `http://127.0.0.1:3080/?token=…`.
 2. Headless Chrome with `--remote-debugging-port=9333`, then drive via CDP WebSocket (`Runtime.evaluate`, `Input.dispatchMouseEvent`, `Page.captureScreenshot`).
-3. Assert at minimum: Workspace menu shows Edit and hides 重命名/Rename; Session menu still shows Rename; dialog opens with seeded values; save updates the row immediately (no reload); reload persists; duplicate/empty name disables save.
+3. Assert at minimum: Workspace menu shows Edit and hides 重命名/Rename; Session menu still shows Rename (right-click a **non-blank** session row — blank "新会话" rows have no menu); dialog opens with seeded values and both default tiles pressed on an unstyled workspace; save updates the row immediately (no reload); reload persists; duplicate/empty name disables save. State/color assertions: folder icon swaps masks on expand/collapse (`getComputedStyle(span, '::before').maskImage` length changes with `aria-expanded`); color-only keeps the native `<svg>` visible with the slot tinted; follow-system inherits the slot's gray; both-default clears the attribute and the storage entry.
 4. Kill the Chrome job and delete temp artifacts (cookies, screenshots, profile dir) when done — the URL token authenticates the GUI.
 
 ## Key Decisions
 
 - **localStorage over Host storage**: no Remote method exists to persist per-workspace style; a Host-side store would need a new typert resource. Documented as a known limitation (no cross-browser sync) instead of inventing a parallel Host schema.
 - **DOM anchoring over slot injection**: no workspace-row slot exists; the row's `data-row-key` is stable and React-safe. Cheaper and reversible (`removeAttribute` restores the folder icon).
+- **Null as "system default", per axis**: icon and color are independent choices; `null` restores that axis's built-in behavior. "Default icon + custom color" tints the native folder (both states kept); "custom icon + follow system" keeps the built-in rest-gray / active-blue selection logic via the mask's `currentColor` fallback. A both-null save is a reset that deletes the entry.
+- **No fake two-state for pictorial icons**: only icons with a natural open form (folders) get an `svgOpen` variant keyed off the row's `aria-expanded`; rotation/opacity stand-ins read as glitches, and hover chevrons + visible child rows already carry the state. The catalog `folder` uses the host's exact geometry so "folder + color" is pixel-faithful to the default.
 - **Hide-don't-replace for Rename**: impossible to unregister built-ins; hiding by label+target-kind is the least invasive workaround and self-disables if DSH changes labels.
 - **Dialog width `max-content`**: grows to exactly one row of tiles, wraps only when the viewport can't fit it (user-requested behavior).
 - **One file, no deps**: DSH client bundles are served unbundled; splitting would require a build pipeline this repo deliberately avoids.
