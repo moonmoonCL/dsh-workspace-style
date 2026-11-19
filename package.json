@@ -14,9 +14,16 @@
   "keywords": [
     "dsh",
     "dsh-plugin",
+    "deepseek",
+    "deepseek-harness",
+    "harness",
     "workspace",
+    "workspace-icons",
     "icon",
-    "color"
+    "color",
+    "sidebar",
+    "customization",
+    "ui"
   ],
   "icon": "./icon.svg",
   "repository": {
@@ -36,8 +43,11 @@
     "client.js",
     "cordis.patch.yml",
     "icon.svg",
+    "screenshots.json",
+    "docs/assets/*.jpg",
     "locale/*.json",
     "README.md",
+    "README.en.md",
     "LICENSE"
   ],
   "scripts": {

@@ -1,6 +1,28 @@
-# dsh-workspace-style
+<p align="center">
+  <img src="docs/assets/edit-dialog.jpg" width="820" alt="工作区编辑对话框：工作区名称输入框，上方是系统默认图标加 14 个图形图标，下方是跟随系统色加 14 个颜色瓦片" />
+</p>
 
-为 DSH 侧栏的工作区（Workspace）自定义**图标**与**颜色**，并把工作区行菜单里的“重命名”替换成“编辑”，用一个对话框同时编辑名称、图标和颜色。
+<h1 align="center">dsh-workspace-style</h1>
+
+<p align="center"><b>给 DeepSeek Harness 侧栏的每个工作区配上自己的图标和颜色：一个「编辑」对话框同时改名称、图标与颜色，图标在收起 / 展开 / 选中三种状态下各有形态。</b></p>
+
+<p align="center">
+  <a href="README.en.md">English</a> ·
+  <a href="#功能">功能</a> ·
+  <a href="#安装">安装</a> ·
+  <a href="#使用">使用</a> ·
+  <a href="#持久化与限制">持久化与限制</a> ·
+  <a href="docs/DEVELOPING.md">开发文档</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/dsh-workspace-style"><img src="https://img.shields.io/npm/v/dsh-workspace-style?style=flat-square&label=npm&color=cb3837" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/dsh-workspace-style"><img src="https://img.shields.io/npm/d18m/dsh-workspace-style?style=flat-square&label=downloads&color=cb3837" alt="npm downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/moonmoonCL/dsh-workspace-style?style=flat-square&label=MIT" alt="MIT license"></a>
+  <a href="https://github.com/moonmoonCL/dsh-workspace-style/stargazers"><img src="https://img.shields.io/github/stars/moonmoonCL/dsh-workspace-style?style=flat-square&label=stars" alt="GitHub stars"></a>
+</p>
+
+DSH 的侧栏里所有工作区都长同一个文件夹样。这个插件让每个工作区有自己的图标与颜色——把工作区行菜单里的“重命名”换成“编辑”，一个对话框同时改名称、图标与颜色。
 
 > 这是一个浏览器端 DSH 插件（Client plugin）。它不修改 Host 的 Workspace 记录，也不新增 Remote 方法；外观保存在浏览器 `localStorage` 中，按稳定的 Workspace id 关联。
 
@@ -19,13 +41,23 @@
 
 插件以 DSH bundle 的形式发布：包清单里的 `dsh.bundle.patch` 会插入 `dsh-workspace-style` 的 Host 条目，`dsh.client` 则声明浏览器入口。
 
-本地开发时，在 DSH profile（例如 `~/.dsh/profiles/web`）中把它作为 bundle 启用：
+```sh
+# 从 npm 安装（推荐）
+dsh plugin --profile web add dsh-workspace-style
+
+# 不走 npm，直接从 GitHub 源码安装
+dsh plugin --profile web add github:moonmoonCL/dsh-workspace-style
+```
+
+把 `--profile web` 换成你实际使用的 profile（如 `desktop`、`dsh-tui`）。也可以直接使用 DSH 的插件管理界面安装/启用这个 bundle。安装完成后重新载入 DSH 页面即可，无需重启 Host 会话。
+
+### 本地开发安装
+
+在 DSH profile（例如 `~/.dsh/profiles/web`）中把它作为本地包启用：
 
 1. 把包链接进 profile 依赖（`pnpm add link:/path/to/dsh-workspace-style` 或写入 `package.json` 后 `pnpm install`）。
 2. 在 profile 的 `dsh.profile.bundles` 中加入 `dsh-workspace-style`。
 3. 重新加载 DSH Web 页面；新插件通过客户端模块图加载，无需重启 Host 会话。
-
-也可以直接使用 DSH 的插件管理界面安装/启用这个 bundle。
 
 ## 使用
 
@@ -49,6 +81,8 @@ package.json          插件清单（dsh.bundle + dsh.client）
 cordis.patch.yml      bundle 的 Host 条目
 index.js              Host 半侧（无状态）
 client.js             浏览器半侧：菜单、对话框、持久化、侧栏装饰
+screenshots.json      插件市场详情页截图声明
+docs/assets/          截图与配图
 locale/{zh,en}.json   插件市场展示文案
 ```
 

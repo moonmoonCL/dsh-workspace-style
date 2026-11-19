@@ -23,10 +23,12 @@ No lint/format/typecheck configured; don't add one without asking.
 | File | Role |
 |------|------|
 | `package.json` | The plugin contract: `dsh.bundle` + `dsh.client` manifest |
-| `client.js` | Browser half — ALL runtime behavior (single file, ~840 lines, on purpose) |
+| `client.js` | Browser half — ALL runtime behavior (single file, ~1030 lines, on purpose) |
 | `index.js` | Host half — stateless `apply()` stub required by the Loader entry |
 | `cordis.patch.yml` | Inserts the host Loader entry |
 | `locale/{zh,en}.json` | Market display copy only; UI strings live in client.js `DICT` |
+| `screenshots.json` | Marketplace detail-page screenshots (paths relative to that file) |
+| `docs/assets/` | Screenshots used by README and the marketplace |
 | `test/client.test.mjs` | vm-sandbox harness: fake DOM + fake cordis ctx |
 
 ## Mandatory reading before editing

@@ -12,6 +12,7 @@ Everything an agent needs to change this plugin safely. Facts below were verifie
 - `index.js` runs on the Host (Node ESM). Here it is an empty `apply()` — the entry exists so the client module graph has a Loader row.
 - No bundler: the Host serves `client.js` bytes as-is over `/plugins`. That is why `test/client.test.mjs` loads it with `vm.runInNewContext` instead of importing it.
 - Install into a profile (already done for `~/.dsh/profiles/web`): pnpm `link:` dependency + the bundle name in the profile `package.json → dsh.profile.bundles`. Plugin-manager install handles both.
+- **`engines.dsh` is checked with `includePrerelease: true`** (`dsh-app-boot`'s `evaluatePluginCompatibility`). That is *not* default semver: under default options a bare range such as `>=0.2.0-rc.2` silently excludes `0.2.2-rc.1` (a prerelease version only satisfies a comparator set that carries a prerelease tag *on its own `major.minor.patch` tuple*). Do not "fix" this range by adding explicit per-tuple `||` branches — measure first, with the same option the host uses: `semver.satisfies(rt, range, { includePrerelease: true })`. A mismatch here makes DSH skip the whole bundle silently (stdout only), which a `link:` install does not necessarily reveal.
 
 ### Client seams used by this plugin
 
@@ -71,6 +72,23 @@ Unit tests cover wiring only (fake DOM, fake cordis ctx). Real checks need a run
 2. Headless Chrome with `--remote-debugging-port=9333`, then drive via CDP WebSocket (`Runtime.evaluate`, `Input.dispatchMouseEvent`, `Page.captureScreenshot`).
 3. Assert at minimum: Workspace menu shows Edit and hides 重命名/Rename; Session menu still shows Rename (right-click a **non-blank** session row — blank "新会话" rows have no menu); dialog opens with seeded values and both default tiles pressed on an unstyled workspace; save updates the row immediately (no reload); reload persists; duplicate/empty name disables save. State/color assertions: folder icon swaps masks on expand/collapse (`getComputedStyle(span, '::before').maskImage` length changes with `aria-expanded`); color-only keeps the native `<svg>` visible with the slot tinted; follow-system inherits the slot's gray; both-default clears the attribute and the storage entry.
 4. Kill the Chrome job and delete temp artifacts (cookies, screenshots, profile dir) when done — the URL token authenticates the GUI.
+
+## Distribution & listing
+
+Where users actually find DSH plugins, in order of reach (verified 2026-11):
+
+| Channel | Requirement | State |
+|---------|-------------|-------|
+| npm | `npm publish` from the **official** registry — a mirror registry in `npm config get registry` breaks publishing | pending: needs an authenticated `npm login` |
+| [dsh-plugin.org](https://dsh-plugin.org/zh/submit) (DSH Plugin Hub, 20k+ indexed) | public repo, topic `dsh-plugin`, README install command, root `package.json`, `apply(ctx)`; **listable in the in-app 插件中心 only with an npm package**; then open the prefilled Issue | — |
+| [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) registry (feeds most storefronts) | one file `data/plugins/<owner>__<repo>.yml` (`url`/`name`/`category`/`description.en` ending in a period; quote descriptions containing `: `), topic `dsh-plugin`, repo ≥ 1 day old, `dsh.bundle` declared (not just `dsh.client`), ≤ 3 entries per PR | — |
+| dsh-market Themes tab | `category: theme` in that registry — **not** ours; this plugin is `ui` | n/a |
+
+`category: ui` is the right bucket (UI enhancement, not an app theme/skin).
+
+**`screenshots.json`** at repo root is how marketplace detail pages get their screenshots (1–8 paths, relative to that file, GitHub-hosted only). Keep the image in `docs/assets/` and list it there — never an absolute URL, which rots silently. Update it whenever the dialog changes; a stale screenshot is worse than none.
+
+**A merged registry entry is a snapshot, not a subscription.** Any capability change needs a fresh PR to that entry, and reviewers check every claim in the description against the code — no superlatives, and no number you have not counted.
 
 ## Key Decisions
 
